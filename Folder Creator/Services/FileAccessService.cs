@@ -3,12 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using Avalonia.Platform.Storage;
+using Avalonia.Controls;
+using CsvHelper;
+using System.Globalization;
+using Folder_Creator.Models;
 
 namespace Folder_Creator.Services
 {
     public class FileAccessService : IFileAccessProvider
     {
-        public string GetDestination(string destinationFile)
+        private readonly Window _currentWindow;
+
+        public FileAccessService(Window currentWindow)
+        {
+            _currentWindow = currentWindow;
+        }
+
+        public string LoadDestination(string destinationFile)
         {
             if (File.Exists(destinationFile))
             {
@@ -44,12 +56,16 @@ namespace Folder_Creator.Services
             {
                 try
                 {
-                    List<string> packers = LoadPackers(spreadsheetFile).ToList();
-                    for (int i = 1; i < packers.Count; i++)
+                    using StreamReader thesReader = new StreamReader(spreadsheetFile);
+                    using CsvReader thecReader = new CsvReader(thesReader, CultureInfo.InvariantCulture);
+
+                    IEnumerable<Packer> packers = thecReader.GetRecords<Packer>();
+
+                    foreach (var currentPacker in packers)
                     {
-                        if (!Directory.Exists(Path.Combine(location, packers[i])))
+                        if (!Directory.Exists(Path.Combine(location, currentPacker.PackerNumber)))
                         {
-                            Directory.CreateDirectory(location + Path.DirectorySeparatorChar + packers[i]);
+                            Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.PackerNumber);
                         }
                     }
                     return true;
@@ -65,7 +81,8 @@ namespace Folder_Creator.Services
             }
 
         }
-        public async Task<string> GetDestinationAsync(string destinationFile)
+
+        public async Task<string> LoadDestinationAsync(string destinationFile)
         {
             string destination = string.Empty;
             if (File.Exists(destinationFile))
@@ -99,12 +116,15 @@ namespace Folder_Creator.Services
             {
                 try
                 {
-                    List<string> packers = await LoadPackersAsync(spreadsheetFile);
-                    for (int i = 1; i < packers.Count; i++)
+                    using StreamReader thesReader = new StreamReader(spreadsheetFile);
+                    using CsvReader thecReader = new CsvReader(thesReader, CultureInfo.InvariantCulture);
+
+                    IAsyncEnumerable<Packer> packers = thecReader.GetRecordsAsync<Packer>();
+                    await foreach (Packer currentPacker in packers)
                     {
-                        if (!Directory.Exists(Path.Combine(location, packers[i])))
+                        if (!Directory.Exists(Path.Combine(location, currentPacker.PackerNumber)))
                         {
-                            await Task.Run(() => Directory.CreateDirectory(location + Path.DirectorySeparatorChar + packers[i]));
+                            await Task.Run(() => Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.PackerNumber));
                         }
                     }
 
@@ -121,30 +141,36 @@ namespace Folder_Creator.Services
             }
 
         }
-        private static IEnumerable<string> LoadPackers(string fileName)
+        public async Task<IStorageFolder?> ChooseDestinationAsync()
         {
-            List<string> columns = new List<string>();
-            using (CsvFileReader theReader = new CsvFileReader(File.OpenRead(fileName)))
+            var folders = await _currentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
             {
-                while (theReader.ReadRow(columns))
-                {
-                    yield return columns[0];
-                }
-            }
-        }
-        private static async Task<List<string>> LoadPackersAsync(string fileName)
-        {
-            List<string> cells = new List<string>();
-            List<string> packersData = new List<string>();
-            using (CsvFileReader theReader = new CsvFileReader(File.OpenRead(fileName)))
-            {
-                while (await theReader.ReadRowAsync(cells))
-                {
-                    packersData.Add(cells[0]);
-                }
-            }
+                Title = "Select Destination Folder",
+                AllowMultiple = false
+            });
 
-            return packersData;
+            return folders.Count >= 1 ? folders[0] : null;
         }
+        public async Task<IStorageFile?> ChoosePackersFileAsync()
+        {
+            FilePickerFileType fileTypes = new FilePickerFileType("CSV Files (.csv)")
+            {
+                Patterns = new[] { "*.csv" },
+                AppleUniformTypeIdentifiers = new[] { "public.csv" },
+                MimeTypes = new[] { "csv/*" }
+            };
+
+            FilePickerOpenOptions options = new FilePickerOpenOptions()
+            {
+                Title = "Choose csv file.",
+                AllowMultiple = false,
+                FileTypeFilter = new FilePickerFileType[] { fileTypes }
+            };
+
+            IReadOnlyList<IStorageFile> files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
+
+            return files.Count >= 1 ? files[0] : null;
+        }
+
     }
 }
