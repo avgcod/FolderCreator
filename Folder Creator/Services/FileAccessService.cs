@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using Avalonia.Platform.Storage;
@@ -11,16 +10,9 @@ using Folder_Creator.Models;
 
 namespace Folder_Creator.Services
 {
-    public class FileAccessService : IFileAccessProvider
+    public static class FileAccessService
     {
-        private readonly Window _currentWindow;
-
-        public FileAccessService(Window currentWindow)
-        {
-            _currentWindow = currentWindow;
-        }
-
-        public string LoadDestination(string destinationFile)
+        public static string LoadDestination(string destinationFile)
         {
             if (File.Exists(destinationFile))
             {
@@ -34,7 +26,7 @@ namespace Folder_Creator.Services
                 return string.Empty;
             }
         }
-        public bool SaveDestination(string destinationFile, string destination)
+        public static bool SaveDestination(string destinationFile, string destination)
         {
             try
             {
@@ -50,7 +42,7 @@ namespace Folder_Creator.Services
             }
 
         }
-        public bool CreateFolders(string spreadsheetFile, string location)
+        public static bool CreateFolders(string spreadsheetFile, string location)
         {
             if (File.Exists(spreadsheetFile) && Directory.Exists(location))
             {
@@ -82,7 +74,7 @@ namespace Folder_Creator.Services
 
         }
 
-        public async Task<string> LoadDestinationAsync(string destinationFile)
+        public static async Task<string> LoadDestinationAsync(string destinationFile)
         {
             string destination = string.Empty;
             if (File.Exists(destinationFile))
@@ -94,7 +86,7 @@ namespace Folder_Creator.Services
             }
             return destination;
         }
-        public async Task<bool> SaveDestinationAsync(string destinationFile, string destination)
+        public static async Task<bool> SaveDestinationAsync(string destinationFile, string destination)
         {
             try
             {
@@ -110,7 +102,7 @@ namespace Folder_Creator.Services
             }
 
         }
-        public async Task<bool> CreateFoldersAsync(string spreadsheetFile, string location)
+        public static async Task<bool> CreateFoldersAsync(string spreadsheetFile, string location)
         {
             if (File.Exists(spreadsheetFile) && Directory.Exists(location))
             {
@@ -141,7 +133,8 @@ namespace Folder_Creator.Services
             }
 
         }
-        public async Task<IStorageFolder?> ChooseDestinationAsync()
+
+        public static async Task<IStorageFolder?> ChooseDestinationAsync(Window _currentWindow)
         {
             var folders = await _currentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
             {
@@ -151,7 +144,7 @@ namespace Folder_Creator.Services
 
             return folders.Count >= 1 ? folders[0] : null;
         }
-        public async Task<IStorageFile?> ChoosePackersFileAsync()
+        public static async Task<IStorageFile?> ChoosePackersFileAsync(Window _currentWindow)
         {
             FilePickerFileType fileTypes = new FilePickerFileType("CSV Files (.csv)")
             {
@@ -167,7 +160,7 @@ namespace Folder_Creator.Services
                 FileTypeFilter = new FilePickerFileType[] { fileTypes }
             };
 
-            IReadOnlyList<IStorageFile> files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
+            IReadOnlyList<IStorageFile>? files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
 
             return files.Count >= 1 ? files[0] : null;
         }

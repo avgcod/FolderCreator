@@ -3,7 +3,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Folder_Creator.ViewModels;
 using Folder_Creator.Views;
-using Folder_Creator.Services;
 
 namespace Folder_Creator
 {
