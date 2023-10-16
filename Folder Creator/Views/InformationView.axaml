@@ -6,6 +6,8 @@
         mc:Ignorable="d"
         x:Class="Folder_Creator.Views.InformationView"
         Title="Folder Creator"
+        MinHeight="150"
+        MinWidth="550"
         Height="150"
         Width="550"
         Icon="/Assets/lightning-icon.ico">

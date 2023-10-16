@@ -30,12 +30,7 @@ namespace Folder_Creator.ViewModels
         private bool _busy = false;
 
         [ObservableProperty]
-        private string _creatingText = "Create";
-
-        public bool CanCreate => !string.IsNullOrEmpty(SpreadsheetFile) &&
-                !string.IsNullOrEmpty(DestinationLocation) &&
-                !Busy;
-        public bool CanChoose => !Busy;
+        private string _creatingText = "Create";        
         #endregion
 
         public InformationViewModel(Window currentWindow, string destinationFile)
@@ -46,6 +41,12 @@ namespace Folder_Creator.ViewModels
             _currentWindow.Opened += OnWindowOpened;
             _currentWindow.Closing += OnWindowClosing;
         }
+
+        #region Commands
+        public bool CanCreate => !string.IsNullOrEmpty(SpreadsheetFile) &&
+                !string.IsNullOrEmpty(DestinationLocation) &&
+                !Busy;
+        public bool CanChoose => !Busy;
 
         public async Task LoadDestinationAsync()
         {
@@ -90,7 +91,8 @@ namespace Folder_Creator.ViewModels
             {
                 SpreadsheetFile = await selectedFile?.SaveBookmarkAsync();
             }
-        }
+        } 
+        #endregion
 
         public async void OnWindowClosing(object? sender, CancelEventArgs e)
         {
