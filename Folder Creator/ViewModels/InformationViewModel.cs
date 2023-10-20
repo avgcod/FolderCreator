@@ -113,12 +113,7 @@ namespace Folder_Creator.ViewModels
         [RelayCommand(CanExecute = nameof(CanChoose))]
         public async Task ChooseFolder()
         {
-            IStorageFolder? selectedFolder = await FileAccessService.ChooseDestinationAsync(_currentWindow,_theMessenger);
-
-            if (selectedFolder != null && selectedFolder.CanBookmark)
-            {
-                DestinationLocation = await selectedFolder?.SaveBookmarkAsync() ?? string.Empty;
-            }
+            DestinationLocation = await FileAccessService.ChooseDestinationAsync(_currentWindow,_theMessenger);
         }
 
         /// <summary>
@@ -128,12 +123,7 @@ namespace Folder_Creator.ViewModels
         [RelayCommand(CanExecute = nameof(CanChoose))]
         public async Task ChooseFile()
         {
-            IStorageFile? selectedFile = await FileAccessService.ChooseCSVFileAsync(_currentWindow, _theMessenger);
-
-            if (selectedFile != null && selectedFile.CanBookmark)
-            {
-                CsvFile = await selectedFile?.SaveBookmarkAsync() ?? string.Empty;
-            }
+            CsvFile = await FileAccessService.ChooseCSVFileAsync(_currentWindow, _theMessenger);
         } 
         #endregion
 

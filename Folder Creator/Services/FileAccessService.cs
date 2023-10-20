@@ -205,7 +205,7 @@ namespace Folder_Creator.Services
         /// <param name="_currentWindow">The current window of the application.</param>
         /// <param name="theMessenger">The messenger to use in case of error.</param>
         /// <returns>The selected folder or null if there was an error.</returns>
-        public static async Task<IStorageFolder?> ChooseDestinationAsync(Window _currentWindow, IMessenger theMessenger)
+        public static async Task<string> ChooseDestinationAsync(Window _currentWindow, IMessenger theMessenger)
         {
             try
             {
@@ -215,12 +215,20 @@ namespace Folder_Creator.Services
                     AllowMultiple = false
                 });
 
-                return folders.Count >= 1 ? folders[0] : null;
+                if (folders != null && folders[0].CanBookmark)
+                {
+                    return await folders[0].SaveBookmarkAsync() ?? string.Empty;
+                }
+                else
+                {
+                    return string.Empty;
+                }
+                    
             }
             catch (Exception ex)
             {
                 theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return null;
+                return string.Empty;
             }
 
         }
@@ -230,7 +238,7 @@ namespace Folder_Creator.Services
         /// <param name="_currentWindow">The current window of the application.</param>
         /// <param name="theMessenger">The messenger to use in case of error.</param>
         /// <returns>The selected file or null if there was an error.</returns>
-        public static async Task<IStorageFile?> ChooseCSVFileAsync(Window _currentWindow, IMessenger theMessenger)
+        public static async Task<string> ChooseCSVFileAsync(Window _currentWindow, IMessenger theMessenger)
         {
             FilePickerFileType fileTypes = new FilePickerFileType("CSV Files (.csv)")
             {
@@ -249,13 +257,21 @@ namespace Folder_Creator.Services
             try
             {
                 IReadOnlyList<IStorageFile>? files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
+                if (files != null && files[0].CanBookmark)
+                {
+                    return await files[0].SaveBookmarkAsync() ?? string.Empty;
+                }
+                else
+                {
+                    return string.Empty;
+                }
 
-                return files.Count >= 1 ? files[0] : null;
+                
             }
             catch (Exception ex)
             {
                 theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return null;
+                return string.Empty;
             }
         }
 
