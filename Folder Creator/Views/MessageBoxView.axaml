@@ -3,15 +3,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="180" d:DesignHeight="70"
-        Width="180" Height="70"
         x:Class="Folder_Creator.Views.MessageBoxView"
         Title="Notice"
         WindowStartupLocation="CenterOwner"
-        SystemDecorations="BorderOnly">
+        SystemDecorations="BorderOnly"
+        SizeToContent="WidthAndHeight">
   
   <StackPanel Orientation="Vertical"
               Spacing="10"
-              Margin="0 5 0 0">
+              Margin="5">
     
     <TextBlock Text="{Binding MessageText}" HorizontalAlignment="Center"/>
     

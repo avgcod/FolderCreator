@@ -7,26 +7,51 @@ using Avalonia.Controls;
 using CsvHelper;
 using System.Globalization;
 using Folder_Creator.Models;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Folder_Creator.Services
 {
+    /// <summary>
+    /// This class provide access to the local file system.
+    /// </summary>
     public static class FileAccessService
     {
-        public static string LoadDestination(string destinationFile)
+        /// <summary>
+        /// Loads the saved destination folder.
+        /// </summary>
+        /// <param name="destinationFile">The file to load from.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>The destination folder or an empty string if there was an error.</returns>
+        public static string LoadDestination(string destinationFile, IMessenger theMessenger)
         {
-            if (File.Exists(destinationFile))
+            try
             {
-                using (TextReader reader = new StreamReader(File.OpenRead(destinationFile)))
+                if (File.Exists(destinationFile))
                 {
-                    return reader.ReadLine() ?? string.Empty;
+                    using (TextReader reader = new StreamReader(File.OpenRead(destinationFile)))
+                    {
+                        return reader.ReadLine() ?? string.Empty;
+                    }
+                }
+                else
+                {
+                    return string.Empty;
                 }
             }
-            else
+            catch (Exception ex)
             {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
                 return string.Empty;
             }
+
         }
-        public static bool SaveDestination(string destinationFile, string destination)
+        /// <summary>
+        /// Saves the destination folder to a file.
+        /// </summary>
+        /// <param name="destinationFile">The file to save to.</param>
+        /// <param name="destination">The destination folder to save.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        public static void SaveDestination(string destinationFile, string destination, IMessenger theMessenger)
         {
             try
             {
@@ -34,21 +59,27 @@ namespace Folder_Creator.Services
                 {
                     writer.WriteLine(destination);
                 }
-                return true;
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
             }
 
         }
-        public static bool CreateFolders(string spreadsheetFile, string location)
+        /// <summary>
+        /// Creates the folders for each line of a CSV file.
+        /// </summary>
+        /// <param name="csvFile">The CSV file.</param>
+        /// <param name="location">The location to create the folders in.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>if the operation succeeded.</returns>
+        public static bool CreateFolders(string csvFile, string location, IMessenger theMessenger)
         {
-            if (File.Exists(spreadsheetFile) && Directory.Exists(location))
+            try
             {
-                try
+                if (File.Exists(csvFile) && Directory.Exists(location))
                 {
-                    using StreamReader thesReader = new StreamReader(spreadsheetFile);
+                    using StreamReader thesReader = new StreamReader(csvFile);
                     using CsvReader thecReader = new CsvReader(thesReader, CultureInfo.InvariantCulture);
 
                     IEnumerable<Packer> packers = thecReader.GetRecords<Packer>();
@@ -60,33 +91,57 @@ namespace Folder_Creator.Services
                             Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.PackerNumber);
                         }
                     }
+
                     return true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    throw new Exception(ex.Message);
+                    return false;
                 }
             }
-            else
+            catch (Exception ex)
             {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
                 return false;
             }
 
+
         }
 
-        public static async Task<string> LoadDestinationAsync(string destinationFile)
+        /// <summary>
+        /// Loads the saved destination folder.
+        /// </summary>
+        /// <param name="destinationFile">The file to load from.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>The destination folder or an empty string if there was an error.</returns>
+        public static async Task<string> LoadDestinationAsync(string destinationFile, IMessenger theMessenger)
         {
-            string destination = string.Empty;
-            if (File.Exists(destinationFile))
+            try
             {
-                using (TextReader reader = new StreamReader(File.OpenRead(destinationFile)))
+                string destination = string.Empty;
+                if (File.Exists(destinationFile))
                 {
-                    destination = await reader.ReadLineAsync() ?? string.Empty;
+                    using (TextReader reader = new StreamReader(File.OpenRead(destinationFile)))
+                    {
+                        destination = await reader.ReadLineAsync() ?? string.Empty;
+                    }
                 }
+                return destination;
             }
-            return destination;
+            catch (Exception ex)
+            {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
+                return string.Empty;
+            }
+
         }
-        public static async Task<bool> SaveDestinationAsync(string destinationFile, string destination)
+        /// <summary>
+        /// Saves the destination folder to a file.
+        /// </summary>
+        /// <param name="destinationFile">The file to save to.</param>
+        /// <param name="destination">The destination folder to save.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        public static async Task<bool> SaveDestinationAsync(string destinationFile, string destination, IMessenger theMessenger)
         {
             try
             {
@@ -98,17 +153,25 @@ namespace Folder_Creator.Services
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
+                return false;
             }
 
         }
-        public static async Task<bool> CreateFoldersAsync(string spreadsheetFile, string location)
+        /// <summary>
+        /// Creates the folders for each line of a CSV file.
+        /// </summary>
+        /// <param name="csvFile">The CSV file.</param>
+        /// <param name="location">The location to create the folders in.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>if the operation succeeded.</returns>
+        public static async Task<bool> CreateFoldersAsync(string csvFile, string location, IMessenger theMessenger)
         {
-            if (File.Exists(spreadsheetFile) && Directory.Exists(location))
+            try
             {
-                try
+                if (File.Exists(csvFile) && Directory.Exists(location))
                 {
-                    using StreamReader thesReader = new StreamReader(spreadsheetFile);
+                    using StreamReader thesReader = new StreamReader(csvFile);
                     using CsvReader thecReader = new CsvReader(thesReader, CultureInfo.InvariantCulture);
 
                     IAsyncEnumerable<Packer> packers = thecReader.GetRecordsAsync<Packer>();
@@ -122,29 +185,52 @@ namespace Folder_Creator.Services
 
                     return true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    throw new Exception(ex.Message);
+                    return false;
                 }
             }
-            else
+            catch (Exception ex)
             {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
                 return false;
             }
 
+
         }
 
-        public static async Task<IStorageFolder?> ChooseDestinationAsync(Window _currentWindow)
+        /// <summary>
+        /// Opens a folder chooser dialog for the user to choose a folder.
+        /// </summary>
+        /// <param name="_currentWindow">The current window of the application.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>The selected folder or null if there was an error.</returns>
+        public static async Task<IStorageFolder?> ChooseDestinationAsync(Window _currentWindow, IMessenger theMessenger)
         {
-            var folders = await _currentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
+            try
             {
-                Title = "Select Destination Folder",
-                AllowMultiple = false
-            });
+                var folders = await _currentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
+                {
+                    Title = "Select Destination Folder",
+                    AllowMultiple = false
+                });
 
-            return folders.Count >= 1 ? folders[0] : null;
+                return folders.Count >= 1 ? folders[0] : null;
+            }
+            catch (Exception ex)
+            {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
+                return null;
+            }
+
         }
-        public static async Task<IStorageFile?> ChoosePackersFileAsync(Window _currentWindow)
+        /// <summary>
+        /// Opens a file chooser dialog for the user to choose a file.
+        /// </summary>
+        /// <param name="_currentWindow">The current window of the application.</param>
+        /// <param name="theMessenger">The messenger to use in case of error.</param>
+        /// <returns>The selected file or null if there was an error.</returns>
+        public static async Task<IStorageFile?> ChooseCSVFileAsync(Window _currentWindow, IMessenger theMessenger)
         {
             FilePickerFileType fileTypes = new FilePickerFileType("CSV Files (.csv)")
             {
@@ -160,9 +246,17 @@ namespace Folder_Creator.Services
                 FileTypeFilter = new FilePickerFileType[] { fileTypes }
             };
 
-            IReadOnlyList<IStorageFile>? files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
+            try
+            {
+                IReadOnlyList<IStorageFile>? files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
 
-            return files.Count >= 1 ? files[0] : null;
+                return files.Count >= 1 ? files[0] : null;
+            }
+            catch (Exception ex)
+            {
+                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
+                return null;
+            }
         }
 
     }
