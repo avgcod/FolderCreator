@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         x:Class="Folder_Creator.Views.InformationView"
+        x:DataType="vm:InformationViewModel"
         Title="Folder Creator"
         MinHeight="150"
         MinWidth="550"
@@ -37,7 +38,7 @@
              Margin="5 5 5 0"
              MinWidth="300"
              MaxWidth="400"
-             Text="{Binding SpreadsheetFile}"
+             Text="{Binding CsvFile}"
              VerticalAlignment="Center"
              HorizontalAlignment="Center"/>
 

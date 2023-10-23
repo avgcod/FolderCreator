@@ -6,7 +6,6 @@ using Folder_Creator.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Folder_Creator.Views;
 using CommunityToolkit.Mvvm.Input;
-using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Messaging;
 using Folder_Creator.Models;
 
