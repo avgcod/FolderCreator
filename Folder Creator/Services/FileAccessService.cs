@@ -8,6 +8,7 @@ using CsvHelper;
 using System.Globalization;
 using Folder_Creator.Models;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Linq;
 
 namespace Folder_Creator.Services
 {
@@ -215,7 +216,7 @@ namespace Folder_Creator.Services
                     AllowMultiple = false
                 });
 
-                if (folders != null && folders[0].CanBookmark)
+                if (folders != null && folders.Any() && folders[0].CanBookmark)
                 {
                     return await folders[0].SaveBookmarkAsync() ?? string.Empty;
                 }
@@ -257,7 +258,7 @@ namespace Folder_Creator.Services
             try
             {
                 IReadOnlyList<IStorageFile>? files = await _currentWindow?.StorageProvider.OpenFilePickerAsync(options);
-                if (files != null && files[0].CanBookmark)
+                if (files != null && files.Any() && files[0].CanBookmark)
                 {
                     return await files[0].SaveBookmarkAsync() ?? string.Empty;
                 }
