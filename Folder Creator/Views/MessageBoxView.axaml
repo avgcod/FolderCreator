@@ -9,7 +9,10 @@
         Title="Notice"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="BorderOnly"
-        SizeToContent="WidthAndHeight">
+        MinWidth="180"
+        MinHeight="70"
+        Width="180"
+        Height="70">
   
   <StackPanel Orientation="Vertical"
               Spacing="10"
