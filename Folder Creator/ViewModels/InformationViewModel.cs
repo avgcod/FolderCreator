@@ -1,31 +1,25 @@
 ﻿using Avalonia.Controls;
-using System.ComponentModel;
-using System;
-using System.Threading.Tasks;
-using Folder_Creator.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Folder_Creator.Views;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Folder_Creator.Models;
+using Folder_Creator.Services;
+using Folder_Creator.Views;
+using System.Threading.Tasks;
 
 namespace Folder_Creator.ViewModels
 {
-    public partial class InformationViewModel : ViewModelBase, IRecipient<OperationErrorMessage>
+    public partial class InformationViewModel(Window currentWindow, string destinationFile, IMessenger theMessenger) : ViewModelBase(theMessenger), IRecipient<OperationErrorMessage>
     {
         #region Variables
         /// <summary>
         /// The file to save the destination to.
         /// </summary>
-        private readonly string _destinationFile;
+        private readonly string _destinationFile = destinationFile;
         /// <summary>
         /// The program window.
         /// </summary>
-        private readonly Window _currentWindow;
-        /// <summary>
-        /// The messenger to use.
-        /// </summary>
-        private readonly IMessenger _theMessenger;
+        private readonly Window _currentWindow = currentWindow;
         #endregion
 
         #region Properties
@@ -53,19 +47,9 @@ namespace Folder_Creator.ViewModels
         /// Tetx for the Create button.
         /// </summary>
         [ObservableProperty]
-        private string _creatingText = "Create";        
+        private string _creatingText = "Create";
+
         #endregion
-
-        public InformationViewModel(Window currentWindow, string destinationFile, IMessenger theMessenger)
-        {
-            _destinationFile = destinationFile;
-            _currentWindow = currentWindow;
-            _theMessenger = theMessenger;
-
-            _theMessenger.Register<OperationErrorMessage>(this);
-            _currentWindow.Opened += OnWindowOpened;
-            _currentWindow.Closing += OnWindowClosing;
-        }
 
         #region Commands
         /// <summary>
@@ -74,6 +58,7 @@ namespace Folder_Creator.ViewModels
         public bool CanCreate => !string.IsNullOrEmpty(CsvFile) &&
                 !string.IsNullOrEmpty(DestinationLocation) &&
                 !Busy;
+
         /// <summary>
         /// If the Choose CSV and Choose Destination buttons can be clicked.
         /// </summary>
@@ -81,7 +66,7 @@ namespace Folder_Creator.ViewModels
 
         public async Task LoadDestinationAsync()
         {
-            DestinationLocation = await FileAccessService.LoadDestinationAsync(_destinationFile, _theMessenger);
+            DestinationLocation = await FileAccessService.LoadDestinationAsync(_destinationFile, Messenger);
         }
 
         /// <summary>
@@ -94,14 +79,14 @@ namespace Folder_Creator.ViewModels
             Busy = true;
             CreatingText = "Creating...";
 
-            await FileAccessService.CreateFoldersAsync(CsvFile, DestinationLocation, _theMessenger);
+            await FileAccessService.CreateFoldersAsync(CsvFile, DestinationLocation, Messenger);
 
-            CreatingText = "Create";
-
-            MessageBoxView mboxView = new MessageBoxView();
-            mboxView.DataContext = new MessageBoxViewModel(mboxView, "Finished Creating");
+            MessageBoxView mboxView = new();
+            mboxView.DataContext = new MessageBoxViewModel(mboxView, Messenger);
+            Messenger.Send(new NotificationMessage("Finished Creating Folders"));
             await mboxView.ShowDialog(_currentWindow);
 
+            CreatingText = "Create";
             Busy = false;
         }
 
@@ -112,7 +97,7 @@ namespace Folder_Creator.ViewModels
         [RelayCommand(CanExecute = nameof(CanChoose))]
         public async Task ChooseFolder()
         {
-            DestinationLocation = await FileAccessService.ChooseDestinationAsync(_currentWindow,_theMessenger);
+            DestinationLocation = await FileAccessService.ChooseDestinationAsync(_currentWindow, Messenger);
         }
 
         /// <summary>
@@ -122,22 +107,24 @@ namespace Folder_Creator.ViewModels
         [RelayCommand(CanExecute = nameof(CanChoose))]
         public async Task ChooseFile()
         {
-            CsvFile = await FileAccessService.ChooseCSVFileAsync(_currentWindow, _theMessenger);
-        } 
+            CsvFile = await FileAccessService.ChooseCSVFileAsync(_currentWindow, Messenger);
+        }
         #endregion
 
-        public async void OnWindowClosing(object? sender, CancelEventArgs e)
+        protected override async void OnActivated()
         {
-            _theMessenger.UnregisterAll(this);
-            _currentWindow.Opened -= OnWindowOpened;
-            _currentWindow.Closing -= OnWindowClosing;
-
-            await FileAccessService.SaveDestinationAsync(_destinationFile, DestinationLocation, _theMessenger);
+            Messenger.RegisterAll(this);
+            await LoadDestinationAsync();
+            base.OnActivated();
         }
 
-        private async void OnWindowOpened(object? sender, EventArgs e)
+        protected override async void OnDeactivated()
         {
-            await LoadDestinationAsync();
+            Messenger.UnregisterAll(this);
+
+            await FileAccessService.SaveDestinationAsync(_destinationFile, DestinationLocation, Messenger);
+
+            base.OnDeactivated();
         }
 
         /// <summary>
@@ -147,9 +134,10 @@ namespace Folder_Creator.ViewModels
         /// <returns>Task</returns>
         private async Task HandleOperationErrorMessageAsync(OperationErrorMessage message)
         {
-            ErrorMessageBoxView emboxView = new ErrorMessageBoxView();
+            ErrorMessageBoxView emboxView = new();
 
-            emboxView.DataContext = new ErrorMessageBoxViewModel(emboxView, message);
+            emboxView.DataContext = new ErrorMessageBoxViewModel(emboxView, Messenger);
+            Messenger.Send(new OperationErrorInfoMessage(message.ErrorType, message.ErrorMessage));
 
             await emboxView.ShowDialog(_currentWindow);
         }

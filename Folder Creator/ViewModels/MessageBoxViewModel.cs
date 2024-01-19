@@ -1,26 +1,19 @@
 ﻿using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Folder_Creator.Models;
 using System;
 using System.ComponentModel;
 
 namespace Folder_Creator.ViewModels
 {
-    public partial class MessageBoxViewModel : ViewModelBase
+    public partial class MessageBoxViewModel(Window currentWindow, IMessenger theMessenger) : ViewModelBase(theMessenger), IRecipient<NotificationMessage>
     {
-        private readonly Window _currentWindow;
+        private readonly Window _currentWindow = currentWindow;
 
         [ObservableProperty]
         private string _messageText = string.Empty;
-
-        public MessageBoxViewModel(Window currentWindow, string messageText)
-        {
-            MessageText = messageText;
-            _currentWindow = currentWindow;
-
-            _currentWindow.Opened += OnWindowOpened;
-            _currentWindow.Closing += OnWindowClosing;
-        }
 
         [RelayCommand]
         public void OK()
@@ -28,15 +21,21 @@ namespace Folder_Creator.ViewModels
             _currentWindow.Close();
         }
 
-        private void OnWindowClosing(object? sender, CancelEventArgs e)
+        public void Receive(NotificationMessage message)
         {
-            _currentWindow.Opened -= OnWindowOpened;
-            _currentWindow.Closing -= OnWindowClosing;
+            MessageText = message.MessageText;
         }
 
-        private void OnWindowOpened(object? sender, EventArgs e)
+        protected override void OnActivated()
         {
-            _currentWindow.FindControl<Button>("btnOk")?.Focus();
+            Messenger.RegisterAll(this);
+            base.OnActivated();
+        }
+
+        protected override void OnDeactivated()
+        {
+            Messenger.UnregisterAll(this);
+            base.OnDeactivated();
         }
     }
 }
