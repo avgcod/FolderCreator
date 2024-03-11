@@ -20,6 +20,7 @@ namespace Folder_Creator.ViewModels
         public void OK()
         {
             _currentWindow.Close();
+            IsActive = false;
         }
 
         public void Receive(OperationErrorMessage message)

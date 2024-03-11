@@ -64,6 +64,10 @@ namespace Folder_Creator.ViewModels
         /// </summary>
         public bool CanChoose => !Busy;
 
+        /// <summary>
+        /// Gets the saved previous destination or an empty string if there is no saved destination.
+        /// </summary>
+        /// <returns>Task</returns>
         public async Task LoadDestinationAsync()
         {
             DestinationLocation = await FileAccessService.LoadDestinationAsync(_destinationFile, Messenger);
@@ -81,13 +85,26 @@ namespace Folder_Creator.ViewModels
 
             await FileAccessService.CreateFoldersAsync(CsvFile, DestinationLocation, Messenger);
 
-            MessageBoxView mboxView = new();
-            mboxView.DataContext = new MessageBoxViewModel(mboxView, Messenger);
-            Messenger.Send(new NotificationMessage("Finished Creating Folders"));
-            await mboxView.ShowDialog(_currentWindow);
+            await ShowMessageBox("Finished Creating Folders");
 
             CreatingText = "Create";
             Busy = false;
+        }
+
+        /// <summary>
+        /// Shows a message box using the provided message.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns>Task</returns>
+        private async Task ShowMessageBox(string message)
+        {
+            MessageBoxView mboxView = new();
+            MessageBoxViewModel mbvModel = new (mboxView, Messenger);
+            mboxView.DataContext = mbvModel;
+            mbvModel.IsActive = true;
+            Messenger.Send(new NotificationMessage(message));
+            mboxView.SizeToContent = SizeToContent.WidthAndHeight;
+            await mboxView.ShowDialog(_currentWindow);
         }
 
         /// <summary>
@@ -135,10 +152,11 @@ namespace Folder_Creator.ViewModels
         private async Task HandleOperationErrorMessageAsync(OperationErrorMessage message)
         {
             ErrorMessageBoxView emboxView = new();
-
-            emboxView.DataContext = new ErrorMessageBoxViewModel(emboxView, Messenger);
+            ErrorMessageBoxViewModel embvModel = new (emboxView, Messenger);
+            emboxView.DataContext = embvModel;
+            embvModel.IsActive = true;
             Messenger.Send(new OperationErrorInfoMessage(message.ErrorType, message.ErrorMessage));
-
+            emboxView.SizeToContent = SizeToContent.WidthAndHeight;
             await emboxView.ShowDialog(_currentWindow);
         }
 
