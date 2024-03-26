@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.IO;
+﻿using Avalonia.Controls;
 using Avalonia.Platform.Storage;
-using Avalonia.Controls;
-using CsvHelper;
-using System.Globalization;
-using Folder_Creator.Models;
 using CommunityToolkit.Mvvm.Messaging;
+using CsvHelper;
+using Folder_Creator.Models;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Folder_Creator.Services
 {
@@ -21,7 +21,7 @@ namespace Folder_Creator.Services
         /// </summary>
         /// <param name="destinationFile">The file to load from.</param>
         /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The destination folder or an empty string if there was an error.</returns>
+        /// <returns>The destination folder name or an empty string if there was an error.</returns>
         public static async Task<string> LoadDestinationAsync(string destinationFile, IMessenger theMessenger)
         {
             try
@@ -79,11 +79,11 @@ namespace Folder_Creator.Services
                     using StreamReader thesReader = new(csvFile);
                     using CsvReader thecReader = new(thesReader, CultureInfo.InvariantCulture);
 
-                    await foreach (Packer currentPacker in thecReader.GetRecordsAsync<Packer>())
+                    await foreach (FolderNumberHolder currentPacker in thecReader.GetRecordsAsync<FolderNumberHolder>())
                     {
-                        if (!Directory.Exists(Path.Combine(location, currentPacker.PackerNumber)))
+                        if (!Directory.Exists(Path.Combine(location, currentPacker.FolderNumber)))
                         {
-                            createDirectoryTasks.Add(Task.Run(() => Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.PackerNumber)));
+                            createDirectoryTasks.Add(Task.Run(() => Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.FolderNumber)));
                         }
                     }
 
@@ -108,7 +108,7 @@ namespace Folder_Creator.Services
         /// </summary>
         /// <param name="_currentWindow">The current window of the application.</param>
         /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The selected folder or null if there was an error.</returns>
+        /// <returns>The selected folder name or an empty string if there was an error.</returns>
         public static async Task<string> ChooseDestinationAsync(Window _currentWindow, IMessenger theMessenger)
         {
             string folderName = string.Empty;
@@ -148,7 +148,7 @@ namespace Folder_Creator.Services
         /// </summary>
         /// <param name="_currentWindow">The current window of the application.</param>
         /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The selected file or null if there was an error.</returns>
+        /// <returns>The selected file name or an empty string if there was an error.</returns>
         public static async Task<string> ChooseCSVFileAsync(Window _currentWindow, IMessenger theMessenger)
         {
             FilePickerFileType fileTypes = new("CSV Files (.csv)")

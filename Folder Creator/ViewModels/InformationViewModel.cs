@@ -9,6 +9,12 @@ using System.Threading.Tasks;
 
 namespace Folder_Creator.ViewModels
 {
+    /// <summary>
+    /// Data context class for the InformationView Window.
+    /// </summary>
+    /// <param name="currentWindow">The InformationView window.</param>
+    /// <param name="destinationFile">The file to save the destination location to.</param>
+    /// <param name="theMessenger">the IMessenger to use.</param>
     public partial class InformationViewModel(Window currentWindow, string destinationFile, IMessenger theMessenger) : ViewModelBase(theMessenger), IRecipient<OperationErrorMessage>
     {
         #region Variables
@@ -17,7 +23,7 @@ namespace Folder_Creator.ViewModels
         /// </summary>
         private readonly string _destinationFile = destinationFile;
         /// <summary>
-        /// The program window.
+        /// The InformationView window.
         /// </summary>
         private readonly Window _currentWindow = currentWindow;
         #endregion
@@ -44,7 +50,7 @@ namespace Folder_Creator.ViewModels
         private bool _busy = false;
 
         /// <summary>
-        /// Tetx for the Create button.
+        /// Text for the Create button.
         /// </summary>
         [ObservableProperty]
         private string _creatingText = "Create";
@@ -128,6 +134,9 @@ namespace Folder_Creator.ViewModels
         }
         #endregion
 
+        /// <summary>
+        /// Handles setup when the class is acticated.
+        /// </summary>
         protected override async void OnActivated()
         {
             Messenger.RegisterAll(this);
@@ -135,6 +144,9 @@ namespace Folder_Creator.ViewModels
             base.OnActivated();
         }
 
+        /// <summary>
+        /// Handles cleanup when the class is deactivated.
+        /// </summary>
         protected override async void OnDeactivated()
         {
             Messenger.UnregisterAll(this);
@@ -152,10 +164,9 @@ namespace Folder_Creator.ViewModels
         private async Task HandleOperationErrorMessageAsync(OperationErrorMessage message)
         {
             ErrorMessageBoxView emboxView = new();
-            ErrorMessageBoxViewModel embvModel = new (emboxView, Messenger);
+            ErrorMessageBoxViewModel embvModel = new (emboxView, Messenger, message.ErrorMessage, message.ErrorType);
             emboxView.DataContext = embvModel;
             embvModel.IsActive = true;
-            Messenger.Send(new OperationErrorInfoMessage(message.ErrorType, message.ErrorMessage));
             emboxView.SizeToContent = SizeToContent.WidthAndHeight;
             await emboxView.ShowDialog(_currentWindow);
         }
