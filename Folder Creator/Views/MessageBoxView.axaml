@@ -1,0 +1,35 @@
+<Window
+    x:Class="Folder_Creator.Views.MessageBoxView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Folder_Creator.ViewModels"
+    Title="Notice"
+    Width="200"
+    Height="80"
+    MinWidth="200"
+    MinHeight="80"
+    x:DataType="vm:MessageBoxViewModel"
+    SystemDecorations="BorderOnly"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <StackPanel
+        Margin="5"
+        Orientation="Vertical"
+        Spacing="10">
+
+        <TextBlock
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Text="{Binding MessageText}" />
+
+        <Button
+            HorizontalAlignment="Center"
+            HorizontalContentAlignment="Center"
+            Command="{Binding OKCommand}"
+            Content="OK" />
+
+    </StackPanel>
+</Window>
