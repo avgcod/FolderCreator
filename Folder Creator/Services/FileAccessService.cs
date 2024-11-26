@@ -51,7 +51,7 @@ namespace Folder_Creator.Services
         {
             try
             {
-                await using TextWriter writer = new StreamWriter(File.OpenWrite(destinationFile));
+                await using TextWriter writer = new StreamWriter(File.Create(destinationFile));
                 await writer.WriteLineAsync(destination);
                 return true;
             }
@@ -153,16 +153,16 @@ namespace Folder_Creator.Services
         {
             FilePickerFileType fileTypes = new("CSV Files (.csv)")
             {
-                Patterns = new[] { "*.csv" },
-                AppleUniformTypeIdentifiers = new[] { "public.csv" },
-                MimeTypes = new[] { "csv/*" }
+                Patterns = ["*.csv"],
+                AppleUniformTypeIdentifiers = ["public.csv"],
+                MimeTypes = ["csv/*"]
             };
 
             FilePickerOpenOptions options = new()
             {
                 Title = "Choose csv file.",
                 AllowMultiple = false,
-                FileTypeFilter = new FilePickerFileType[] { fileTypes }
+                FileTypeFilter = [fileTypes]
             };
 
             string fileName = string.Empty;
