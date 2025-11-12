@@ -1,39 +1,35 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using CommunityToolkit.Mvvm.Messaging;
 using Folder_Creator.ViewModels;
 using Folder_Creator.Views;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Folder_Creator
-{
-    public class App : Application
-    {
-        private InformationViewModel? ivModel;
-        private const string _destinationFileName = "destination.txt";
+using static Folder_Creator.Helpers.ServiceCollectionExtensions;
 
-        public override void Initialize()
-        {
+namespace Folder_Creator {
+    public class App : Application {
+
+        public override void Initialize() {
             AvaloniaXamlLoader.Load(this);
         }
 
-        public override void OnFrameworkInitializationCompleted()
-        {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                desktop.MainWindow = new InformationView();
-                desktop.MainWindow.Closing += MainWindow_Closing;
-                ivModel = new InformationViewModel(desktop.MainWindow, _destinationFileName, StrongReferenceMessenger.Default);
-                desktop.MainWindow.DataContext = ivModel;
-                ivModel.IsActive = true;
+        public override void OnFrameworkInitializationCompleted() {
+            ServiceProvider provider = CreateServiceCollectionwithCommonServices().BuildServiceProvider();
+
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+                // Line below is needed to remove Avalonia data validation.
+                // Without this line you will get duplicate validations from both Avalonia and CT
+                BindingPlugins.DataValidators.RemoveAt(0);
+
+                desktop.MainWindow = provider.GetRequiredService<InformationView>();
+                //desktop.MainWindow.Closing += MainWindow_Closing;
+                //ivModel = new MainWindowViewModel(desktop.MainWindow, _destinationFileName, StrongReferenceMessenger.Default);
+                desktop.MainWindow.DataContext = provider.GetRequiredService<InformationViewModel>();
             }
 
             base.OnFrameworkInitializationCompleted();
-        }
-
-        private void MainWindow_Closing(object? sender, Avalonia.Controls.WindowClosingEventArgs e)
-        {
-            ivModel!.IsActive = false;
         }
     }
 }

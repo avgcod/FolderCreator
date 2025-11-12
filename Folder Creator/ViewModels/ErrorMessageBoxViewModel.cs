@@ -1,55 +1,14 @@
 ﻿using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 
-namespace Folder_Creator.ViewModels
-{
-    public partial class ErrorMessageBoxViewModel(Window theWindow,IMessenger theMessenger, string errorMessage, string errorType) : ViewModelBase(theMessenger)
-    {
-        /// <summary>
-        /// The window this class is the data context for.
-        /// </summary>
-        private readonly Window _currentWindow = theWindow;
+namespace Folder_Creator.ViewModels;
 
-        /// <summary>
-        /// The string name of the error type.
-        /// </summary>
-        [ObservableProperty]
-        private string _errorType = errorMessage;
+public partial class ErrorMessageBoxViewModel(Window currentWindow, string errorType, string errorMessage) : ObservableObject {
 
-        /// <summary>
-        /// The error message.
-        /// </summary>
-        [ObservableProperty]
-        private string _errorMessage = errorType;
+    [ObservableProperty] private string _errorType = errorType;
 
-        /// <summary>
-        /// Handles the OK button being clicked.
-        /// </summary>
-        [RelayCommand]
-        public void OK()
-        {
-            _currentWindow.Close();
-            IsActive = false;
-        }
+    [ObservableProperty] private string _errorMessage = errorMessage;
 
-        /// <summary>
-        /// Handles setup when the class is activated.
-        /// </summary>
-        protected override void OnActivated()
-        {
-            Messenger.RegisterAll(this);
-            base.OnActivated();
-        }
-
-        /// <summary>
-        /// Handles cleanup when the class is deactivated.
-        /// </summary>
-        protected override void OnDeactivated()
-        {
-            Messenger.UnregisterAll(this);
-            base.OnDeactivated();
-        }
-    }
+    [RelayCommand] public void OK() => currentWindow.Close();
 }

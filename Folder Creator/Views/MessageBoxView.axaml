@@ -6,8 +6,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:Folder_Creator.ViewModels"
     Title="Notice"
-    Width="200"
-    Height="80"
     MinWidth="200"
     MinHeight="80"
     x:DataType="vm:MessageBoxViewModel"
@@ -15,21 +13,11 @@
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
 
-    <StackPanel
-        Margin="5"
-        Orientation="Vertical"
-        Spacing="10">
+    <StackPanel Margin="5" Orientation="Vertical" Spacing="10">
 
-        <TextBlock
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Text="{Binding MessageText}" />
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding MessageText}" />
 
-        <Button
-            HorizontalAlignment="Center"
-            HorizontalContentAlignment="Center"
-            Command="{Binding OKCommand}"
-            Content="OK" />
+        <Button HorizontalAlignment="Center" HorizontalContentAlignment="Center" Command="{Binding OKCommand}" Content="OK" />
 
     </StackPanel>
 </Window>

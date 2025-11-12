@@ -1,190 +1,138 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Platform.Storage;
-using CommunityToolkit.Mvvm.Messaging;
 using CsvHelper;
-using Folder_Creator.Models;
+using Folder_Creator.Types;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace Folder_Creator.Services
+namespace Folder_Creator.Services;
+
+public static class FileAccessService
 {
-    /// <summary>
-    /// This class provide access to the local file system.
-    /// </summary>
-    public static class FileAccessService
-    {
-        /// <summary>
-        /// Loads the saved destination folder.
-        /// </summary>
-        /// <param name="destinationFile">The file to load from.</param>
-        /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The destination folder name or an empty string if there was an error.</returns>
-        public static async Task<string> LoadDestinationAsync(string destinationFile, IMessenger theMessenger)
-        {
-            try
-            {
-                string destination = string.Empty;
-                if (File.Exists(destinationFile))
-                {
-                    using TextReader reader = new StreamReader(File.OpenRead(destinationFile));
-                    destination = await reader.ReadLineAsync() ?? string.Empty;
+    public static async Task<Fin<string>> LoadDestination(string destinationFile) {
+        return await ValidatedFilePath(destinationFile)
+            .Some(async validatedPath => {
+                try {
+                    using TextReader reader = new StreamReader(File.OpenRead(validatedPath));
+                    return await reader.ReadLineAsync() ?? string.Empty;
+                } catch (Exception ex) {
+                    return Fin.Fail<string>(ex);
                 }
-                return destination;
-            }
-            catch (Exception ex)
-            {
-                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return string.Empty;
-            }
+            })
+            .None(() => Task.FromResult(Fin.Fail<string>(Error.New("Unable to find the provided file path."))));
+    }
+
+    private static Option<string> ValidatedFilePath(string path) {
+        return File.Exists(path) switch {
+            true => path,
+            false => Option<string>.None
+        };
+    }
+
+    public static async Task<Fin<bool>> SaveDestination(string destinationFile, string destination) {
+        try {
+            await using TextWriter writer = new StreamWriter(File.OpenWrite(destinationFile));
+            await writer.WriteLineAsync(destination);
+            return true;
+        } catch (Exception ex) {
+            return Fin.Fail<bool>(ex);
         }
+    }
 
-        /// <summary>
-        /// Saves the destination folder to a file.
-        /// </summary>
-        /// <param name="destinationFile">The file to save to.</param>
-        /// <param name="destination">The destination folder to save.</param>
-        /// <param name="theMessenger">The messenger to use in case of error.</param>
-        public static async Task<bool> SaveDestinationAsync(string destinationFile, string destination, IMessenger theMessenger)
-        {
-            try
-            {
-                await using TextWriter writer = new StreamWriter(File.Create(destinationFile));
-                await writer.WriteLineAsync(destination);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return false;
-            }
-        }
+    public static async Task<Fin<string>> CreateFolders(string csvFile, string location) {
+        if (!await FileExists(csvFile))
+            return Fin.Fail<string>($"Unable to find file {csvFile}.");
 
-        /// <summary>
-        /// Creates the folders for each line of a CSV file.
-        /// </summary>
-        /// <param name="csvFile">The CSV file.</param>
-        /// <param name="location">The location to create the folders in.</param>
-        /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>if the operation succeeded.</returns>
-        public static async Task<bool> CreateFoldersAsync(string csvFile, string location, IMessenger theMessenger)
-        {
-            try
-            {
-                List<Task> createDirectoryTasks = [];
-                if (File.Exists(csvFile) && Directory.Exists(location))
-                {
-                    using StreamReader thesReader = new(csvFile);
-                    using CsvReader thecReader = new(thesReader, CultureInfo.InvariantCulture);
+        if (!await DirectoryExists(location))
+            return Fin.Fail<string>($"Unable to find directory {location}.");
 
-                    await foreach (FolderNumberHolder currentPacker in thecReader.GetRecordsAsync<FolderNumberHolder>())
-                    {
-                        if (!Directory.Exists(Path.Combine(location, currentPacker.FolderNumber)))
-                        {
-                            createDirectoryTasks.Add(Task.Run(() => Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.FolderNumber)));
+        var compiledList = await BuildDirectoryList(csvFile, location);
+
+        Fin<string> result = Fin.Fail<string>("Not initialized");
+
+        compiledList.Match(async directoryTaskList => result = BuildMessage(await Task.WhenAll(directoryTaskList)), theError => result = Fail(theError));
+
+        return result;
+    }
+
+    public static async Task<Option<string>> ChooseDestination(Window _currentWindow) {
+        FolderPickerOpenOptions options = new() {
+            Title = "Select Destination Folder",
+            AllowMultiple = false
+        };
+
+        IReadOnlyList<IStorageFolder> folders = await _currentWindow.StorageProvider.OpenFolderPickerAsync(options);
+
+        if (folders.Any() && folders[0].CanBookmark)
+            return (folders[0].TryGetLocalPath() is string localPath) ? localPath : Option<string>.None;
+
+        return Option<string>.None;
+    }
+
+    public static async Task<Option<string>> ChooseCSVFile(Window _currentWindow) {
+        FilePickerFileType fileTypes = new("CSV Files (.csv)") {
+            Patterns = ["*.csv"],
+            AppleUniformTypeIdentifiers = ["public.csv"],
+            MimeTypes = ["csv/*"]
+        };
+
+        FilePickerOpenOptions options = new() {
+            Title = "Choose csv file.",
+            AllowMultiple = false,
+            FileTypeFilter = [fileTypes]
+        };
+
+        var files = await _currentWindow.StorageProvider.OpenFilePickerAsync(options);
+
+        if (files.Any() && files[0].CanBookmark)
+            return (files[0].TryGetLocalPath() is string filePath) ? filePath : Option<string>.None;
+
+        return Option<string>.None;
+    }
+
+    private static async Task<bool> FileExists(string path) => await Task.Run(() => File.Exists(path));
+
+    private static async Task<bool> DirectoryExists(string path) => await Task.Run(() => Directory.Exists(path));
+
+    private static async Task<Fin<List<Task<Fin<bool>>>>> BuildDirectoryList(string csvFile, string location) {
+        using StreamReader thesReader = new(csvFile);
+        using CsvReader thecReader = new(thesReader, CultureInfo.InvariantCulture);
+        thecReader.Context.RegisterClassMap<FolderNumberHolderMap>();
+
+        List<Task<Fin<bool>>> createDirectoryTasks = [];
+        try {
+            await foreach (FolderNumberHolder currentPacker in thecReader.GetRecordsAsync<FolderNumberHolder>()) {
+                if (!Directory.Exists(Path.Combine(location, currentPacker.FolderNumber))) {
+                    createDirectoryTasks.Add(Task.Run(() => {
+                        try {
+                            Directory.CreateDirectory(location + Path.DirectorySeparatorChar + currentPacker.FolderNumber);
+                            return true;
+                        } catch (Exception ex) {
+                            return Fin.Fail<bool>(ex);
                         }
-                    }
-
-                    await Task.WhenAll(createDirectoryTasks);
-
-                    return true;
-                }
-                else
-                {
-                    return false;
+                    }));
                 }
             }
-            catch (Exception ex)
-            {
-                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return false;
-            }
+            return createDirectoryTasks;
+        } catch (Exception ex) {
+            return Fin.Fail<List<Task<Fin<bool>>>>(ex);
         }
+    }
 
-        /// <summary>
-        /// Opens a folder chooser dialog for the user to choose a folder.
-        /// </summary>
-        /// <param name="_currentWindow">The current window of the application.</param>
-        /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The selected folder name or an empty string if there was an error.</returns>
-        public static async Task<string> ChooseDestinationAsync(Window _currentWindow, IMessenger theMessenger)
-        {
-            string folderName = string.Empty;
-            try
-            {
-                FolderPickerOpenOptions options = new()
-                {
-                    Title = "Select Destination Folder",
-                    AllowMultiple = false
-                };
-
-                if (_currentWindow?.StorageProvider is { CanOpen: true } storageProvider)
-                {
-                    IReadOnlyList<IStorageFolder> folders = await storageProvider.OpenFolderPickerAsync(options);
-
-                    if (folders.Count > 0 && folders[0].CanBookmark)
-                    {
-                        folderName = await folders[0].SaveBookmarkAsync() ?? string.Empty;
-                    }
-                }
-                else
-                {
-                    return string.Empty;
-                }
-
-                return folderName;
-            }
-            catch (Exception ex)
-            {
-                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return folderName;
-            }
+    private static string BuildMessage(Fin<bool>[] results) {
+        StringBuilder stringBuilder = new();
+        foreach (Fin<bool> item in results.Where(x => x.IsFail)) {
+            item.IfFail(theError => stringBuilder.AppendLine(theError.Message));
         }
-
-        /// <summary>
-        /// Opens a file chooser dialog for the user to choose a file.
-        /// </summary>
-        /// <param name="_currentWindow">The current window of the application.</param>
-        /// <param name="theMessenger">The messenger to use in case of error.</param>
-        /// <returns>The selected file name or an empty string if there was an error.</returns>
-        public static async Task<string> ChooseCSVFileAsync(Window _currentWindow, IMessenger theMessenger)
-        {
-            FilePickerFileType fileTypes = new("CSV Files (.csv)")
-            {
-                Patterns = ["*.csv"],
-                AppleUniformTypeIdentifiers = ["public.csv"],
-                MimeTypes = ["csv/*"]
-            };
-
-            FilePickerOpenOptions options = new()
-            {
-                Title = "Choose csv file.",
-                AllowMultiple = false,
-                FileTypeFilter = [fileTypes]
-            };
-
-            string fileName = string.Empty;
-
-            try
-            {
-                if (_currentWindow?.StorageProvider is { CanOpen: true } storageProvider)
-                {
-                    IReadOnlyList<IStorageFile> files = await storageProvider.OpenFilePickerAsync(options);
-                    if (files.Count > 0 && files[0].CanBookmark)
-                    {
-                        fileName = await files[0].SaveBookmarkAsync() ?? string.Empty;
-                    }
-                }
-
-                return fileName;
-            }
-            catch (Exception ex)
-            {
-                theMessenger.Send<OperationErrorMessage>(new OperationErrorMessage(ex.GetType().Name, ex.Message));
-                return fileName;
-            }
+        if (stringBuilder.Length < 1) {
+            return "All folders created successfully.";
+        } else {
+            return stringBuilder.ToString();
         }
     }
 }
